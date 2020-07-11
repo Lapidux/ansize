@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"github.com/nfnt/resize"
 	"image"
@@ -12,7 +13,9 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,6 +30,7 @@ const (
 )
 
 var BANNED_CHARACTERS = [...]string{" ", "\n", "\r"}
+var FILETYPE_WHITELIST = [...]string{"java", "txt", "go", "py"}
 
 var characterBuffer []byte
 
@@ -34,6 +38,24 @@ func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+/*
+Thanks to Siong-Ui Te: https://siongui.github.io/2018/03/10/go-set-of-all-elements-in-two-arrays/
+*/
+func Union(a, b []byte) []byte {
+	m := make(map[byte]bool)
+
+	for _, item := range a {
+		m[item] = true
+	}
+
+	for _, item := range b {
+		if _, ok := m[item]; !ok {
+			a = append(a, item)
+		}
+	}
+	return a
 }
 
 func toAnsiCode(c color.Color) string {
@@ -58,9 +80,11 @@ func writeAnsiImage(img image.Image, file *os.File, width int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			for isBadCharacter(string(characterBuffer[currentCharCounter])) {
 				currentCharCounter++
-			}
-			if currentCharCounter == len(characterBuffer) {
-				currentCharCounter = 0
+
+				if currentCharCounter == len(characterBuffer) {
+					currentCharCounter = 0
+				}
+
 			}
 			current = toAnsiCode(m.At(x, y))
 			if current != previous {
@@ -76,6 +100,10 @@ func writeAnsiImage(img image.Image, file *os.File, width int) {
 				file.WriteString(string(characterBuffer[currentCharCounter]))
 			}
 			currentCharCounter++
+
+			if currentCharCounter == len(characterBuffer) {
+				currentCharCounter = 0
+			}
 		}
 		fmt.Print("\n")
 		file.WriteString("\n")
@@ -102,23 +130,59 @@ func readCharactersFromFile(filename string) []byte {
 
 func main() {
 
-	characterBuffer = readCharactersFromFile("examples/test.txt")
-
 	rand.Seed(time.Now().UTC().UnixNano())
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: ansize <image> <output> [width]")
+
+	// variables declaration
+	var file, directory string
+	var width int
+
+	// flags declaration using flag package
+	flag.StringVar(&file, "f", "", "Specify file to read characters from.")
+	flag.StringVar(&directory, "d", "", "Specify directory containing files to read characters from.")
+	flag.IntVar(&width, "w", DEFAULT_WIDTH, "Specify width of output, defaults to "+string(DEFAULT_WIDTH))
+
+	flag.Parse() // after declaring flags we need to call it
+
+	if len(flag.Args()) != 2 {
+		fmt.Println("Usage: ansize <input image> <output ANSI file> [-f <characters file> OR -d <directory containing files>] [-w <width of output, default is " + string(DEFAULT_WIDTH) + ">]")
 		return
 	}
-	imageName, outputName := os.Args[1], os.Args[2]
-	var width int = DEFAULT_WIDTH
-	if len(os.Args) >= 4 {
-		var err error
-		width, err = strconv.Atoi(os.Args[3])
-		if err != nil {
-			fmt.Println("Invalid width " + os.Args[3] + ". Please enter an integer.")
+
+	if file != "" {
+
+		if directory != "" {
+			fmt.Println("You may only specify a file, a directory, or neither. You may not specify both.")
 			return
 		}
+
+		characterBuffer = readCharactersFromFile(file)
+	} else if directory != "" {
+		filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				fmt.Printf("Error walking the path %q: %v\n", path, err)
+				return nil
+			}
+
+			if !info.IsDir() && strings.Contains(info.Name(), ".") {
+				var splitName = strings.Split(info.Name(), ".")
+				var fileType = splitName[len(splitName)-1]
+				for _, fType := range FILETYPE_WHITELIST {
+					if fType == fileType {
+						characterBuffer = Union(characterBuffer, readCharactersFromFile(path))
+					}
+				}
+
+			}
+
+			return nil
+		})
+
+	} else {
+		characterBuffer = []byte("01")
 	}
+
+	imageName, outputName := flag.Args()[0], flag.Args()[1]
+
 	imageFile, err := os.Open(imageName)
 	if err != nil {
 		fmt.Println("Could not open image " + imageName)
