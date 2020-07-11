@@ -30,7 +30,7 @@ const (
 )
 
 var BANNED_CHARACTERS = [...]string{" ", "\n", "\r"}
-var FILETYPE_WHITELIST = [...]string{"java", "txt", "go", "py"}
+var FILETYPE_WHITELIST = [...]string{"java", "txt", "go", "py", "asm", "aspx", "bat", "htm", "html", "inc", "js", "jsp", "php", "src", "r", "cpp", "c"}
 
 var characterBuffer []byte
 
@@ -96,8 +96,8 @@ func writeAnsiImage(img image.Image, file *os.File, width int) {
 				fmt.Print(char)
 				file.WriteString(char)
 			} else {
-				fmt.Print(string(characterBuffer[currentCharCounter]))
-				file.WriteString(string(characterBuffer[currentCharCounter]))
+				fmt.Print(" ")
+				file.WriteString(" ")
 			}
 			currentCharCounter++
 
@@ -144,7 +144,7 @@ func main() {
 	flag.Parse() // after declaring flags we need to call it
 
 	if len(flag.Args()) != 2 {
-		fmt.Println("Usage: ansize <input image> <output ANSI file> [-f <characters file> OR -d <directory containing files>] [-w <width of output, default is " + string(DEFAULT_WIDTH) + ">]")
+		fmt.Println("Usage ([] denotes optional):\n ansize [-f <characters file> OR -d <directory containing files>] [-w <width of output, default is " + string(DEFAULT_WIDTH) + ">] <input image> <output ANSI file>")
 		return
 	}
 
