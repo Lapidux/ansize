@@ -1,27 +1,40 @@
-# Ansize
+# Ansize - Lapidux Fork
 
-Converts an image to binary ANSI art like so:
+Original Repository (upstream): https://github.com/jhchen/ansize
 
-[![stage-pikachu.png](https://d23f6h5jpj26xu.cloudfront.net/jason_24594515608662_small.png)](http://img.svbtle.com/jason_24594515608662.png)
+Converts an image to (optionally non-binary) ANSI art like so:
 
-Check out the examples folder for some image samples and their corresponding output. Ex.
+## Example:
+### Original Image:
+![putty.png](https://raw.githubusercontent.com/Lapidux/ansize/master/examples/putty.png)
+### Binary ANSI:
+![putty-binary.png](https://raw.githubusercontent.com/Lapidux/ansize/master/examples/putty-output-bin.png)
+### Non-binary ANSI:
+![pikachu-original-example.png](https://raw.githubusercontent.com/Lapidux/ansize/master/examples/putty-output.png)
+
+Check out the `examples/` folder for some image samples and their corresponding output. Ex.
 
     cat examples/pikachu.ansi
 
-I optimized for images with dark backgrounds and used 0's and 1's for the character set but it's pretty easy to customize the code to convert to your liking! The basic strategy of conversion is very simple:
+The original maintainer optimized for images with dark backgrounds and used 0's and 1's for the character set. Lapidux made minor changes to support loading text files as a source of characters instead of using random binary. This change was inspired by an old website called commits.io, now defunct.
 
-1. Shrink image to desired size
-2. For each pixel, find the corresponding color in ANSI's limited color palette
-3. Set the foreground to that color
-4. Print a random 0 or 1
+### Basic technical explanation:
+1. Shrink image to desired size (From upstream)
+2. For each pixel, find the corresponding color in ANSI's limited color palette (From upstream)
+3. Set the foreground to that color (From upstream)
+4. Print a random 0 or 1 if no characters are provided, otherwise sequentially use the provided characters
+
+###Note:
+This project currently uses a file extension whitelist when provided with a directory, to stop it parsing binary files. It's likely that a number of file extensions are not on the whitelist, so will not be parsed. Feel free to add them yourself (and submit a pull request to help us all out!). The whitelist is currently:
+    `"java", "txt", "go", "py", "asm", "aspx", "bat", "htm", "html", "inc", "js", "jsp", "php", "src", "r", "cpp", "c"`
 
 ## Installation
 
-    go get github.com/jhchen/ansize
+    go get github.com/Lapidux/ansize
 
 ## Usage
 
-    ansize <image> <output> [width]
+    ansize [-f <characters file> OR -d <directory containing files>] [-w <width of output, default is currently 100>] <input image> <output ANSI file>
 
 ## Development
 
@@ -37,5 +50,5 @@ On a Mac with Homebrew the commands are
     mkdir /usr/local/lib/go
     export GOPATH=/usr/local/lib/go
     go get github.com/nfnt/resize
-    git clone git@github.com:jhchen/ansize.git
+    git clone git@github.com:lapidux/ansize.git
     go build ansize.go
